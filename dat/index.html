@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Waveguide Mode Bench · TE/TM explorer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F4F0E5;--panel:#FCFAF4;--ink:#25231C;--ink2:#6E6857;--line:#DAD3C0;
+  --accent:#B45309;--ok:#1E6E43;--bad:#98371F;--chiptx:#F3B33D;
+  --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sans:'Space Grotesk','Helvetica Neue',Arial,sans-serif;
+}
+*{box-sizing:border-box}html,body{margin:0}
+body{font-family:var(--sans);color:var(--ink);font-size:15px;line-height:1.45;
+  background:repeating-linear-gradient(0deg,transparent 0 17px,rgba(37,35,28,.05) 17px 18px),
+             repeating-linear-gradient(90deg,transparent 0 17px,rgba(37,35,28,.05) 17px 18px),var(--paper);}
+.wrap{max-width:1240px;margin:0 auto;padding:0 16px}
+header.top{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;justify-content:space-between;padding:24px 16px 12px}
+h1{font-size:clamp(22px,3.4vw,34px);font-weight:700;margin:0;letter-spacing:-.01em}
+h1 em{font-style:normal;color:var(--accent)}
+.sub{margin:3px 0 0;color:var(--ink2);font:500 11.5px var(--mono);letter-spacing:.09em;text-transform:uppercase}
+.hdrR{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+#modeChip{font:600 24px/1 var(--mono);background:var(--ink);color:var(--chiptx);padding:11px 16px;border-radius:10px;min-width:112px;text-align:center}
+#modeChip sub{font-size:14px}
+.chip{font:600 10.5px var(--mono);letter-spacing:.1em;padding:4px 9px;border-radius:999px;border:1.5px solid currentColor;text-transform:uppercase;white-space:nowrap}
+.chip.ok{color:var(--ok)}.chip.bad{color:var(--bad)}.chip.mut{color:var(--ink2)}
+.grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:14px;margin:8px auto 14px}
+.grid2{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:14px;margin:0 auto 14px}
+.two{display:grid;grid-template-columns:1.45fr 1fr;gap:14px;margin-top:14px}
+@media(max-width:940px){.grid,.grid2,.two{grid-template-columns:1fr}}
+.col{display:flex;flex-direction:column;gap:14px;min-width:0}
+.card{background:var(--panel);border:1.5px solid var(--ink);border-radius:8px;box-shadow:3px 3px 0 rgba(37,35,28,.13);overflow:hidden;min-width:0}
+.card>h3{margin:0;padding:9px 13px;font:600 11px var(--mono);letter-spacing:.15em;text-transform:uppercase;color:var(--ink2);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.body{padding:12px 13px}
+canvas{display:block;width:100%}
+#cvMain{height:440px}#cvSide{height:200px}#cvFp{height:200px}#cvGame{height:215px;border-radius:6px;background:#0E1B2A}
+@media(max-width:700px){#cvMain{height:330px}#cvSide,#cvFp{height:170px}}
+.cap{margin:8px 2px 0;font:400 11.5px/1.55 var(--mono);color:var(--ink2)}
+.toolbar{display:flex;flex-wrap:wrap;gap:7px;padding:10px 13px;border-top:1px solid var(--line);align-items:center}
+.btn{font:500 12.5px var(--mono);border:1.5px solid var(--ink);background:var(--panel);color:var(--ink);padding:5px 10px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{background:var(--ink);color:var(--paper)}
+.btn[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.btn.acc{border-color:var(--accent);color:var(--accent)}.btn.acc:hover{background:var(--accent);color:#fff}
+.btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ctl{display:grid;grid-template-columns:92px 1fr 52px;gap:8px;align-items:center;margin:7px 0}
+.ctl label{font:600 12px var(--mono)}
+.ctl output{font:600 13px var(--mono);text-align:right;color:var(--accent)}
+input[type=range]{width:100%;accent-color:var(--accent);margin:0}
+.rowBtns{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+fieldset{border:1px dashed var(--line);border-radius:6px;margin:11px 0 0;padding:8px 10px;min-width:0}
+legend{font:600 10.5px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);padding:0 5px}
+select{font:500 12.5px var(--mono);border:1.5px solid var(--ink);border-radius:6px;padding:4px 6px;background:var(--panel);color:var(--ink);max-width:100%}
+.ro{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font:500 12.5px var(--mono);margin:2px 0 8px}
+.ro dt{color:var(--ink2)}.ro dd{margin:0;text-align:right;font-weight:600;overflow-wrap:anywhere}
+.bc{font:400 12px/1.6 var(--mono);border-left:3px solid var(--ok);padding:7px 10px;background:rgba(30,110,67,.07);border-radius:0 6px 6px 0;margin-top:10px;white-space:pre-line}
+.struct{font-size:13px;margin-top:9px}
+#chart{max-height:265px;overflow:auto;display:flex;flex-direction:column;gap:4px;padding:10px 13px}
+.mrow{display:grid;grid-template-columns:58px 1fr auto auto;gap:8px;align-items:center;font:500 12.5px var(--mono);border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:5px 8px;cursor:pointer;text-align:left;color:var(--ink)}
+.mrow:hover{border-color:var(--ink)}
+.mrow.active{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.mrow .fc{color:var(--ink2)}.mrow .dom{color:var(--accent);font-weight:600;font-size:11px}
+details.step{border:1px solid var(--line);border-radius:6px;margin:8px 0;background:var(--panel)}
+details.step summary{cursor:pointer;padding:9px 11px;font:600 13.5px var(--sans);list-style:none;display:flex;gap:9px;align-items:center}
+details.step summary::-webkit-details-marker{display:none}
+details.step summary::before{content:'▸';color:var(--accent)}
+details.step[open] summary::before{content:'▾'}
+details.step .in{padding:0 11px 12px}
+textarea{width:100%;min-height:76px;font:400 12.5px/1.5 var(--mono);border:1px solid var(--line);border-radius:6px;padding:8px;background:#fff;color:var(--ink);resize:vertical}
+textarea:focus-visible,select:focus-visible,button:focus-visible,input:focus-visible{outline:2.5px solid var(--accent);outline-offset:1px}
+.score{font:600 13px var(--mono);color:var(--accent)}
+.gRow{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}
+.gRow label{font:600 11px var(--mono);color:var(--ink2)}
+#gameMsg{min-height:22px;font:500 12.5px/1.5 var(--mono);margin-top:9px}
+.note p{margin:.5em 0}.note ul{margin:.4em 0 .6em 1.2em;padding:0}
+.note table{border-collapse:collapse;font:400 12px/1.55 var(--mono);margin:.5em 0;width:100%}
+.note td,.note th{border:1px solid var(--line);padding:4px 8px;text-align:left;vertical-align:top}
+.formula{font:500 12.5px/1.8 var(--mono);background:rgba(180,83,9,.06);border:1px dashed var(--accent);border-radius:6px;padding:9px 12px;margin:8px 0;overflow-x:auto}
+.cols2{display:grid;grid-template-columns:1fr 1fr;gap:2px 22px}
+@media(max-width:760px){.cols2{grid-template-columns:1fr}}
+.rubric{list-style:none;margin:.4em 0;padding:0}
+.rubric li{margin:5px 0;padding-left:1.5em;position:relative;font-size:13.5px}
+.rubric li::before{content:'✓';position:absolute;left:0;color:var(--ok);font-weight:700}
+footer.cite{padding:8px 16px 46px;color:var(--ink2);font:400 11.5px/1.6 var(--mono);max-width:1240px;margin:0 auto}
+footer.cite h4{color:var(--ink);font:600 11px var(--mono);letter-spacing:.14em;text-transform:uppercase;margin:16px 0 6px}
+footer.cite ol{margin:4px 0 0 1.3em;padding:0}
+kbd{font:600 11px var(--mono);border:1px solid var(--line);border-bottom-width:2.5px;border-radius:4px;padding:1px 5px;background:#fff}
+</style>
+</head>
+<body>
+
+<header class="top wrap">
+  <div>
+    <h1>Waveguide <em>Mode Bench</em></h1>
+    <p class="sub">TE / TM rectangular-waveguide explorer · student lab build v1.0</p>
+  </div>
+  <div class="hdrR">
+    <div id="modeChip" aria-live="polite">TE<sub>10</sub></div>
+    <div id="statusChip" class="chip ok">propagating</div>
+  </div>
+</header>
+
+<main class="wrap grid">
+  <!-- ============ LEFT: canvases ============ -->
+  <section class="col">
+    <div class="card">
+      <h3>Cross-section · |E<sub>t</sub>| envelope + instantaneous E arrows</h3>
+      <div class="body"><canvas id="cvMain" role="img"></canvas>
+        <p class="cap">Read: heatmap = |E<sub>t</sub>| envelope (cividis, colorblind-safe) · white arrows = instantaneous E
+        (they breathe when Motion is on) · thin lines = |E| level sets · <b style="color:#B8790A">dashed amber</b> = E-field
+        nulls (nodes), dashed circles = isolated null points · hatched border = PEC wall · dimensions to scale.</p>
+      </div>
+      <div class="toolbar">
+        <button class="btn" id="arrowsB"   aria-pressed="true"  title="show/hide vector arrows">Arrows</button>
+        <button class="btn" id="contoursB" aria-pressed="true"  title="show/hide |E| level sets + node contours">Contours</button>
+        <button class="btn" id="sliceB"    aria-pressed="true"  title="mark the line used by the side view">Slice</button>
+        <button class="btn" id="motionB"   aria-pressed="true"  title="animate the traveling phase (respects reduced-motion)">Motion</button>
+        <button class="btn" id="soundB"    aria-pressed="false" title="sonify the mode: pitch from m,n, timbre from family, muffled+decaying when evanescent">Sound</button>
+        <button class="btn" id="pngB" title="save the cross-section as PNG for the report">
+          <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 19h16"/></svg>PNG</button>
+      </div>
+    </div>
+    <div class="two">
+      <div class="card">
+        <h3>Side view · propagation along z</h3>
+        <div class="body"><canvas id="cvSide" role="img"></canvas><p class="cap" id="sideCap"></p></div>
+      </div>
+      <div class="card">
+        <h3>Mode fingerprint · H<sub>z</sub> (TE) / E<sub>z</sub> (TM)</h3>
+        <div class="body"><canvas id="cvFp" role="img"></canvas><p class="cap" id="fpCap"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ RIGHT: controls / readouts / chart ============ -->
+  <section class="col">
+    <div class="card">
+      <h3>Controls</h3>
+      <div class="body">
+        <div class="rowBtns" role="group" aria-label="Mode family">
+          <button class="btn" id="famTE" aria-pressed="true"  title="transverse electric: Ez = 0">TE · E<sub>z</sub>=0</button>
+          <button class="btn" id="famTM" aria-pressed="false" title="transverse magnetic: Hz = 0">TM · H<sub>z</sub>=0</button>
+        </div>
+        <fieldset><legend>Mode indices</legend>
+          <div class="ctl"><label for="mR" title="half-wave variations across width a">m (across a)</label>
+            <input type="range" id="mR" min="0" max="5" step="1" value="1"><output id="mO">1</output></div>
+          <div class="ctl"><label for="nR" title="half-wave variations across height b">n (across b)</label>
+            <input type="range" id="nR" min="0" max="5" step="1" value="0"><output id="nO">0</output></div>
+          <p class="cap" id="validNote"></p>
+        </fieldset>
+        <fieldset><legend>Guide dimensions (mm)</legend>
+          <div class="ctl"><label for="aR">width a</label>
+            <input type="range" id="aR" min="6" max="120" step="0.1" value="22.86"><output id="aO">22.9</output></div>
+          <div class="ctl"><label for="bR">height b</label>
+            <input type="range" id="bR" min="4" max="120" step="0.1" value="10.16"><output id="bO">10.2</output></div>
+          <div class="ctl"><label for="dimP">preset</label>
+            <select id="dimP">
+              <option value="wr90">WR-90 · X-band</option>
+              <option value="wr62">WR-62</option>
+              <option value="wr430">WR-430</option>
+              <option value="sq">Square 25 × 25</option>
+              <option value="custom">— custom —</option>
+            </select><span></span></div>
+        </fieldset>
+        <fieldset><legend>Operating frequency f₀ (GHz)</legend>
+          <div class="ctl"><label for="fR">f₀</label>
+            <input type="range" id="fR" min="1" max="40" step="0.05" value="10"><output id="fO">10.00</output></div>
+        </fieldset>
+        <div class="rowBtns" role="group" aria-label="Mode presets">
+          <button class="btn acc" data-preset="TE,1,0">TE10</button>
+          <button class="btn acc" data-preset="TE,2,0">TE20</button>
+          <button class="btn acc" data-preset="TE,1,1">TE11</button>
+          <button class="btn acc" data-preset="TM,1,1">TM11</button>
+          <button class="btn acc" data-preset="TM,2,1">TM21</button>
+          <button class="btn" id="resetB" title="back to TE10 · WR-90 · 10 GHz">
+            <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 2.6-6.3M3 4v5h5"/></svg>Reset</button>
+        </div>
+        <p class="cap">Invalid (m,n) are shown on purpose — the bench explains <i>why</i> they cannot exist.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Readouts</h3>
+      <div class="body">
+        <dl class="ro" id="roList"></dl>
+        <div class="bc" id="bcBox"></div>
+        <p class="struct" id="structBox"></p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Mode chart at f₀ <span class="chip mut" id="chartNote">m,n ≤ 5 · click to load</span></h3>
+      <div id="chart"></div>
+    </div>
+  </section>
+</main>
+
+<main class="wrap grid2">
+  <!-- ============ Guided challenge ============ -->
+  <section class="card">
+    <h3>Guided challenge · predict → observe → explain
+      <button class="btn" id="copyR" title="copy all reflection boxes to clipboard">Copy reflections</button></h3>
+    <div class="body">
+      <details class="step" open><summary>1 · Baseline TE₁₀ — predict the pattern</summary>
+        <div class="in"><p>Set TE, m=1, n=0, WR-90, f₀ = 10 GHz. <b>Before</b> studying the canvas: which way do the arrows point? Where is |E| biggest, and where must it be exactly zero?</p>
+        <textarea id="r1" placeholder="I predicted… I observed… This makes sense because… I am still unsure about…"></textarea></div></details>
+      <details class="step"><summary>2 · m → 2 (TE₂₀) — count the nodes</summary>
+        <div class="in"><p>Predict first: how many interior node lines appear? What do the arrows do at x = a/2? What happens to f_c?</p>
+        <textarea id="r2" placeholder="I predicted… I observed…"></textarea></div></details>
+      <details class="step"><summary>3 · n → 1 (TE₂₁) — add height variation</summary>
+        <div class="in"><p>Does the field still vary only across the width? Which new arrow component appears? Watch the fingerprint panel too.</p>
+        <textarea id="r3" placeholder="I predicted… I observed…"></textarea></div></details>
+      <details class="step"><summary>4 · TE₀₀ — break it on purpose</summary>
+        <div class="in"><p>Set m = 0 and n = 0 in TE. Why is there literally no field? Why can't it quietly become a TEM wave?</p>
+        <textarea id="r4" placeholder="I predicted… I observed…"></textarea></div></details>
+      <details class="step"><summary>5 · Switch to TM — who is allowed?</summary>
+        <div class="in"><p>Try TM₁₀, TM₀₁, TM₀₀ (watch the inspector), then TM₁₁. What do m ≥ 1 and n ≥ 1 guarantee about E_z at the walls?</p>
+        <textarea id="r5" placeholder="I predicted… I observed…"></textarea></div></details>
+      <details class="step"><summary>6 · TE₁₁ vs TM₁₁ — degenerate twins</summary>
+        <div class="in"><p>Load both from the chart (same f_c!). Compare arrow topology: swirl vs radial. Same cutoff, similar null locations, completely different directions — why?</p>
+        <textarea id="r6" placeholder="I predicted… I observed…"></textarea></div></details>
+      <details class="step"><summary>7 · Find the dominant mode</summary>
+        <div class="in"><p>With a &gt; b, which chart row has the lowest f_c? Now set a = 10 mm, b = 22.9 mm — who becomes dominant? And with a = b?</p>
+        <textarea id="r7" placeholder="I predicted… I observed…"></textarea></div></details>
+    </div>
+  </section>
+
+  <!-- ============ Game ============ -->
+  <section class="card">
+    <h3>Name that mode <span class="score" id="scoreO">0/0 · streak 0</span></h3>
+    <div class="body">
+      <canvas id="cvGame" role="img" aria-label="Mystery mode pattern to identify"></canvas>
+      <div class="gRow">
+        <label for="gFam">family</label><select id="gFam"><option>TE</option><option>TM</option></select>
+        <label for="gM">m</label><select id="gM"><option>0</option><option>1</option><option>2</option><option>3</option></select>
+        <label for="gN">n</label><select id="gN"><option>0</option><option>1</option><option>2</option><option>3</option></select>
+      </div>
+      <div class="gRow">
+        <button class="btn acc" id="newB">New pattern</button>
+        <button class="btn" id="checkB">Check guess</button>
+        <button class="btn" id="revealB">Reveal</button>
+      </div>
+      <p id="gameMsg">Press “New pattern”, count the half-waves, guess.</p>
+    </div>
+  </section>
+</main>
+
+<!-- ============ Physics notes ============ -->
+<section class="wrap card note" style="margin-bottom:14px">
+  <h3>Physics notes &amp; formulas</h3>
+  <div class="body">
+    <div class="formula">
+      f<sub>c</sub> = (c/2)·√((m/a)² + (n/b)²) &nbsp;·&nbsp; λ<sub>c</sub> = 2/√((m/a)² + (n/b)²) &nbsp;·&nbsp; k<sub>c</sub> = 2π/λ<sub>c</sub><br>
+      f₀ &gt; f<sub>c</sub> (propagating): β = k₀√(1−(f<sub>c</sub>/f₀)²), λ<sub>g</sub> = 2π/β, Z<sub>TE</sub> = η₀/√(1−(f<sub>c</sub>/f₀)²), Z<sub>TM</sub> = η₀·√(1−(f<sub>c</sub>/f₀)²)<br>
+      f₀ &lt; f<sub>c</sub> (evanescent): α = k<sub>c</sub>√(1−(f₀/f<sub>c</sub>)²), fields decay as e<sup>−αz</sup> — no power is delivered.
+    </div>
+    <div class="cols2">
+      <div>
+        <p><b>TE modes (E<sub>z</sub> = 0)</b>, m,n ≥ 0, not both 0 (phasors e<sup>jωt−jβz</sup>, signs follow one common convention — only relative structure matters for the pattern):</p>
+        <table><tbody>
+        <tr><td>H<sub>z</sub></td><td>H₀ cos(mπx/a) cos(nπy/b)</td></tr>
+        <tr><td>E<sub>x</sub></td><td>(jωμ/k<sub>c</sub>²)(nπ/b)H₀ cos(mπx/a) sin(nπy/b)</td></tr>
+        <tr><td>E<sub>y</sub></td><td>−(jωμ/k<sub>c</sub>²)(mπ/a)H₀ sin(mπx/a) cos(nπy/b)</td></tr>
+        <tr><td>H<sub>x</sub></td><td>(jβ/k<sub>c</sub>²)(mπ/a)H₀ sin(mπx/a) cos(nπy/b)</td></tr>
+        <tr><td>H<sub>y</sub></td><td>(jβ/k<sub>c</sub>²)(nπ/b)H₀ cos(mπx/a) sin(nπy/b)</td></tr>
+        </tbody></table>
+        <p>The transverse E is proportional to ẑ × ∇<sub>t</sub>H<sub>z</sub>: it <b>curls around the H<sub>z</sub> extrema</b> (swirl pattern) and vanishes wherever H<sub>z</sub> is locally flat.</p>
+      </div>
+      <div>
+        <p><b>TM modes (H<sub>z</sub> = 0)</b>, only m ≥ 1 <i>and</i> n ≥ 1:</p>
+        <table><tbody>
+        <tr><td>E<sub>z</sub></td><td>E₀ sin(mπx/a) sin(nπy/b)</td></tr>
+        <tr><td>E<sub>x</sub></td><td>−(jβ/k<sub>c</sub>²)(mπ/a)E₀ cos(mπx/a) sin(nπy/b)</td></tr>
+        <tr><td>E<sub>y</sub></td><td>−(jβ/k<sub>c</sub>²)(nπ/b)E₀ sin(mπx/a) cos(nπy/b)</td></tr>
+        <tr><td>H<sub>x</sub></td><td>(jωε/k<sub>c</sub>²)(nπ/b)E₀ sin(mπx/a) cos(nπy/b)</td></tr>
+        <tr><td>H<sub>y</sub></td><td>−(jωε/k<sub>c</sub>²)(mπ/a)E₀ cos(mπx/a) sin(nπy/b)</td></tr>
+        </tbody></table>
+        <p>E<sub>t</sub> ∝ ∇<sub>t</sub>E<sub>z</sub>: the arrows look <b>radial</b>, meeting the E<sub>z</sub> cells head-on. E<sub>z</sub> must be zero on all four walls while still varying inside — that is exactly why m,n ≥ 1.</p>
+      </div>
+    </div>
+    <ul>
+      <li><b>Why TE₀₀ / TM₀₀ / TM₁₀ / TM₀₁ don't exist:</b> TE₀₀ would make H<sub>z</sub> constant ⇒ ∇<sub>t</sub>H<sub>z</sub> = 0 ⇒ every E component vanishes. For TM, one zero index makes E<sub>z</sub> ≡ 0, and H<sub>z</sub> = 0 by definition ⇒ no field. A hollow single-conductor guide cannot fall back on TEM either (that needs ≥ 2 conductors).</li>
+      <li><b>Dominant mode &amp; mono-mode band:</b> f<sub>c</sub>(TE₁₀) = c/2a is the smallest f<sub>c</sub> whenever a &gt; b. With b ≤ a/2, the band c/2a &lt; f &lt; c/a carries TE₁₀ alone.</li>
+      <li><b>Degeneracy:</b> f<sub>c</sub> depends only on (m, n, a, b) — so TE₁₁/TM₁₁, TE₂₁/TM₂₁ … are pairs with identical cutoff but different field structure.</li>
+      <li><b>Analogy:</b> the longitudinal field plays the role of a rectangular <b>drumhead</b>: E<sub>z</sub> (TM) is clamped at the rim (must vanish on the walls), and m, n count its nodal lines in each direction — 2-D standing waves, like two string harmonics at once.</li>
+      <li><b>Units &amp; symbols:</b> a, b in mm · f, f<sub>c</sub> in GHz · λ in mm · β in rad/m · α in Np/m (×8.686 → dB) · c = 299 792 458 m/s · η₀ = 376.73 Ω. Internally everything is converted to SI once, in <code>kcOf()</code>.</li>
+      <li><b>Known idealizations:</b> perfect conductors (no wall loss), lossless filling, one mode at a time (no superposition/beating).</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ README + rubric ============ -->
+<section class="wrap card note" style="margin-bottom:14px">
+  <h3>Usage · README · self-check rubric</h3>
+  <div class="body">
+    <p><b>Run:</b> open this single HTML file in a browser. <b>Controls:</b> family toggle → m, n sliders (0–5) → a, b sliders or a dimension preset → f₀ slider. Mode presets and the chart rows load modes instantly. <b>Keyboard:</b> focus any slider and use <kbd>←</kbd><kbd>→</kbd>; <kbd>Tab</kbd> reaches every control; chart rows are buttons.</p>
+    <ul class="rubric">
+      <li>Tangential E = 0 on every PEC wall for every rendered mode — checked analytically in the live “BC check” box and visually (arrows meet walls normally or vanish).</li>
+      <li>Units centralized (mm→m, GHz→Hz); spot-checked λ<sub>g</sub> = 39.71 mm for TE₁₀ in WR-90 at 10 GHz against handbook values.</li>
+      <li>TE₀₀, TM₀₀, TM₁₀, TM₀₁ render an explicit “no field exists” state and are excluded from the chart and the game.</li>
+      <li>Raising m or n adds lobes/nodes (test log rows 2–3); f<sub>c</sub> rises with m, n.</li>
+      <li>TE₁₀ is dominant for a &gt; b; re-verified for a &lt; b and a = b (rows 9–10).</li>
+      <li>TM₁₁ is the lowest TM mode; TE₁₁/TM₁₁ degeneracy is marked in the chart.</li>
+      <li>Evanescent modes are labeled, show e<sup>−αz</sup> decay, and never claim to propagate.</li>
+      <li>Colorblind-safe colormap, status = color + text, reduced-motion respected, canvases have live ARIA descriptions.</li>
+    </ul>
+  </div>
+</section>
+
+<footer class="cite">
+  <h4>Sources</h4>
+  <ol>
+    <li>D. M. Pozar, <i>Microwave Engineering</i>, 4th ed., Wiley, 2012 — §3.3–3.4, rectangular waveguides (field expressions, cutoff, dominant mode).</li>
+    <li>S. Ramo, J. R. Whinnery, T. Van Duzer, <i>Fields and Waves in Communication Electronics</i>, 3rd ed., Wiley, 1994 — waveguide modes; impossibility of TEM in single-conductor hollow guides.</li>
+    <li>C. A. Balanis, <i>Advanced Engineering Electromagnetics</i>, 2nd ed., Wiley, 2012 — waveguide mode chapter (boundary conditions, mode expansion).</li>
+    <li>R. P. Feynman, <i>The Feynman Lectures on Physics</i>, Vol. II, Ch. 24 “Waveguides” — conceptual treatment.</li>
+    <li>J. R. Nuñez, C. R. Anderton, R. A. Renslow, “Optimizing colormaps with consideration for color vision deficiency…”, <i>PLOS ONE</i> 13(7), 2018 — the cividis colormap.</li>
+    <li>EIA rectangular waveguide designation table — WR-90: a = 22.86 mm, b = 10.16 mm (X-band).</li>
+  </ol>
+</footer>
+
+<script>
+'use strict';
+/* ================= constants & helpers ================= */
+const C0=299792458, ETA0=376.7303;                 // SI: m/s, ohm
+const $=id=>document.getElementById(id);
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+const ri=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const MONO="'IBM Plex Mono',monospace";
+const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const state={family:'TE',m:1,n:0,a:22.86,b:10.16,f0:10,
+             arrows:true,contours:true,slice:true,anim:!reduceMotion,sound:false};
+let info=null, dirty=true, phase=0, lastT=0;
+
+/* ================= physics core ================= */
+function isInvalid(fam,m,n){return (fam==='TE'&&m===0&&n===0)||(fam==='TM'&&(m===0||n===0));}
+function kcOf(m,n,A,B){const a=A/1000,b=B/1000;              // mm -> m HERE (single unit choke-point)
+  return Math.PI*Math.hypot(m/a,n/b);}                       // kc = 2*pi*fc/c [rad/m]
+function fcOf(m,n,A,B){return kcOf(m,n,A,B)*C0/(2*Math.PI)/1e9;} // -> GHz
+
+/* transverse E (pattern units; the overall sign is a global phase, irrelevant to the pattern) */
+function Et(fam,m,n,u,v,A,B){
+  const X=m*Math.PI*u, Y=n*Math.PI*v;
+  if(fam==='TE') return [(n/B)*Math.cos(X)*Math.sin(Y), -(m/A)*Math.sin(X)*Math.cos(Y)]; // E_t ~ z-hat x grad(Hz)
+  return [(m/A)*Math.cos(X)*Math.sin(Y), (n/B)*Math.sin(X)*Math.cos(Y)];                 // E_t ~ -grad(Ez)
+}
+function LongZ(fam,m,n,u,v){const X=m*Math.PI*u,Y=n*Math.PI*v;
+  return fam==='TE'?Math.cos(X)*Math.cos(Y):Math.sin(X)*Math.sin(Y);}
+
+function computeInfo(){
+  const {family,m,n,a,b,f0}=state;
+  const o={family,m,n,a,b,f0,inv:isInvalid(family,m,n)};
+  if(o.inv){o.reason=family==='TE'?'te00':'tm0';o.vcut=null;return o;}
+  const kc=kcOf(m,n,a,b);
+  o.kc=kc; o.fc=kc*C0/(2*Math.PI)/1e9; o.lc=C0/(o.fc*1e9);   // fc GHz, lc m
+  o.prop=f0>o.fc;
+  const k0=2*Math.PI*f0*1e9/C0;
+  if(o.prop){o.beta=Math.sqrt(Math.max(0,k0*k0-kc*kc)); o.lg=2*Math.PI/o.beta; o.alpha=0;
+    o.Z=family==='TE'?ETA0/Math.sqrt(1-(o.fc/f0)**2):ETA0*Math.sqrt(1-(o.fc/f0)**2);}
+  else{o.beta=0;o.lg=NaN;o.alpha=kc*Math.sqrt(1-(f0/o.fc)**2);o.depth=1/o.alpha;}
+  o.vcut=0.5;                                                // slice for side view: first non-null cut
+  for(const v of [0.5,0.25,0.75,0.125,0.375,0.625,0.875]){
+    let mx=0;for(let i=1;i<48;i++){const[ex,ey]=Et(family,m,n,i/48,v,a,b);mx=Math.max(mx,Math.hypot(ex,ey));}
+    if(mx>1e-9){o.vcut=v;break;}}
+  return o;
+}
+
+/* ================= colormaps ================= */
+const CIV=[[0,32,76],[0,51,111],[43,69,104],[84,92,110],[113,113,115],[139,135,122],[166,157,116],[196,181,106],[255,234,70]];
+function cividis(t){t=clamp(t,0,1);const s=t*(CIV.length-1),i=Math.floor(s),f=s-i,A=CIV[i],B=CIV[Math.min(i+1,CIV.length-1)];
+  return [A[0]+(B[0]-A[0])*f,A[1]+(B[1]-A[1])*f,A[2]+(B[2]-A[2])*f];}
+function divMap(t){ // diverging slate <-> paper <-> amber (lightness-coded, CVD-safe)
+  const c=t<0?[47,74,96]:[186,124,20],u=clamp(Math.abs(t),0,1),mid=[247,244,236];
+  return [mid[0]+(c[0]-mid[0])*u,mid[1]+(c[1]-mid[1])*u,mid[2]+(c[2]-mid[2])*u];}
+
+/* ================= canvas plumbing ================= */
+function fit(cv){const r=cv.getBoundingClientRect(),d=window.devicePixelRatio||1;
+  const W=Math.max(10,Math.round(r.width*d)),H=Math.max(10,Math.round(r.height*d));
+  if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H;}
+  const ctx=cv.getContext('2d');ctx.setTransform(d,0,0,d,0,0);
+  return {ctx,w:r.width,h:r.height};}
+function arrow(ctx,x1,y1,x2,y2){const dx=x2-x1,dy=y2-y1,L=Math.hypot(dx,dy);if(L<1.5)return;
+  const ux=dx/L,uy=dy/L,hs=Math.min(5,.4*L);
+  for(const p of [['rgba(250,248,240,.85)',3.4],['#1B1A16',1.5]]){ // light halo + dark core: readable on any heatmap color
+    ctx.strokeStyle=p[0];ctx.lineWidth=p[1];ctx.beginPath();
+    ctx.moveTo(x1-ux*1.5,y1-uy*1.5);ctx.lineTo(x2,y2);
+    ctx.moveTo(x2-ux*hs-uy*hs*.6,y2-uy*hs+ux*hs*.6);ctx.lineTo(x2,y2);
+    ctx.lineTo(x2-ux*hs+uy*hs*.6,y2-uy*hs-ux*hs*.6);ctx.stroke();}}
+function frameHatch(ctx,x0,y0,W,H){ // PEC wall: thick frame + 45-degree hatching outside
+  ctx.strokeStyle='#25231C';ctx.lineWidth=3;ctx.strokeRect(x0-1.5,y0-1.5,W+3,H+3);
+  ctx.strokeStyle='rgba(37,35,28,.5)';ctx.lineWidth=1;ctx.beginPath();
+  for(let x=x0+3;x<x0+W;x+=9){ctx.moveTo(x,y0);ctx.lineTo(x-6,y0-6);ctx.moveTo(x,y0+H);ctx.lineTo(x-6,y0+H+6);}
+  for(let y=y0+3;y<y0+H;y+=9){ctx.moveTo(x0,y);ctx.lineTo(x0-6,y-6);ctx.moveTo(x0+W,y);ctx.lineTo(x0+W+6,y-6);}
+  ctx.stroke();}
+function niceStep(x){for(const s of [0.5,1,2,5,10,20,50])if(x<=s)return s;return 100;}
+function makeOff(c,wd,ht){if(c.width!==wd||c.height!==ht){c.width=wd;c.height=ht;}return c;}
+
+/* ================= field sampling + marching squares (node contours) ================= */
+let CACHE={key:'',data:null};
+function buildHeat(fam,m,n,A,B,NX,NY){
+  const vals=new Float32Array(NX*NY);let mx=0;
+  for(let j=0;j<NY;j++){const v=1-(j+.5)/NY;
+    for(let i=0;i<NX;i++){const u=(i+.5)/NX;
+      const[ex,ey]=Et(fam,m,n,u,v,A,B);const mg=Math.hypot(ex,ey);
+      vals[j*NX+i]=mg;if(mg>mx)mx=mg;}}
+  const off=document.createElement('canvas');off.width=NX;off.height=NY;
+  const octx=off.getContext('2d'),img=octx.createImageData(NX,NY);
+  for(let k=0;k<NX*NY;k++){const c=cividis(Math.pow(mx>0?vals[k]/mx:0,0.9));
+    img.data[4*k]=c[0];img.data[4*k+1]=c[1];img.data[4*k+2]=c[2];img.data[4*k+3]=255;}
+  octx.putImageData(img,0,0);
+  const levels=[.02,.1,.22,.38,.56,.74].map(L=>L*mx);
+  const segsN=march(vals,NX,NY,levels[0]);                       // ~nulls (2% level)
+  const segsI=levels.slice(1).flatMap(L=>march(vals,NX,NY,L));   // topographic level sets
+  const nulls=[],th=mx*0.035;                                    // interior null points
+  for(let j=1;j<NY-1;j++)for(let i=1;i<NX-1;i++){
+    const val=vals[j*NX+i];if(val>=th)continue;
+    const u=(i+.5)/NX,v=1-(j+.5)/NY;
+    if(u<.03||u>.97||v<.03||v>.97)continue;                      // walls are nulls too — don't mark them
+    if(val<=vals[j*NX+i-1]+1e-12&&val<=vals[j*NX+i+1]+1e-12&&
+       val<=vals[(j-1)*NX+i]+1e-12&&val<=vals[(j+1)*NX+i]+1e-12)nulls.push([u,v]);}
+  return {cv:off,segsN,segsI,nulls,mx,NX,NY};
+}
+function march(g,NX,NY,level){ // classic marching squares; returns segments in lattice coords
+  const segs=[];
+  for(let j=0;j<NY-1;j++)for(let i=0;i<NX-1;i++){
+    const a=g[j*NX+i],b=g[j*NX+i+1],c=g[(j+1)*NX+i+1],d=g[(j+1)*NX+i];
+    const idx=(a>level?1:0)|(b>level?2:0)|(c>level?4:0)|(d>level?8:0);
+    if(idx===0||idx===15)continue;
+    const ip=(v0,v1)=>{const dd=v1-v0;return Math.abs(dd)<1e-15?.5:(level-v0)/dd;};
+    const bot=[i+ip(a,b),j],right=[i+1,j+ip(b,c)],top=[i+ip(d,c),j+1],left=[i,j+ip(a,d)];
+    const T={1:[[left,bot]],2:[[bot,right]],3:[[left,right]],4:[[right,top]],
+      5:[[left,top],[bot,right]],6:[[bot,top]],7:[[left,top]],8:[[top,left]],
+      9:[[bot,top]],10:[[top,right],[left,bot]],11:[[right,top]],12:[[left,right]],
+      13:[[bot,right]],14:[[left,bot]]}[idx];
+    for(const s of T)segs.push(s);}
+  return segs;}
+
+/* shared painter: heatmap + contours + null circles + arrows (used by main view AND the game) */
+function paint(ctx,x0,y0,W,H,fam,m,n,o={}){
+  const NX=160,NY=clamp(Math.round(NX*state.b/state.a),18,220);
+  const key=[fam,m,n,state.a,state.b,NX,NY].join('|');
+  if(CACHE.key!==key)CACHE={key,data:buildHeat(fam,m,n,state.a,state.b,NX,NY)};
+  const D=CACHE.data;
+  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+  ctx.drawImage(D.cv,x0,y0,W,H);
+  const px=p=>x0+((p[0]+.5)/NX)*W, py=p=>y0+((p[1]+.5)/NY)*H;
+  if(o.iso!==false){ctx.lineWidth=.8;ctx.strokeStyle='rgba(250,248,240,.4)';ctx.beginPath();
+    for(const s of D.segsI){ctx.moveTo(px(s[0][0]),py(s[0][1]));ctx.lineTo(px(s[1][0]),py(s[1][1]));}ctx.stroke();}
+  if(o.nodes!==false){
+    ctx.save();ctx.setLineDash([5,4]);ctx.lineWidth=1.5;ctx.strokeStyle='#FFC94D';ctx.beginPath();
+    for(const s of D.segsN){ctx.moveTo(px(s[0][0]),py(s[0][1]));ctx.lineTo(px(s[1][0]),py(s[1][1]));}ctx.stroke();ctx.restore();
+    const seen=[];
+    for(const [u,v] of D.nulls){const Xp=x0+u*W,Yp=y0+(1-v)*H;
+      if(seen.some(q=>Math.hypot(q[0]-Xp,q[1]-Yp)<80))continue;seen.push([Xp,Yp]);
+      ctx.save();ctx.setLineDash([3,3]);ctx.strokeStyle='#FFC94D';ctx.lineWidth=1.3;
+      ctx.beginPath();ctx.arc(Xp,Yp,8,0,6.3);ctx.stroke();ctx.restore();}}
+  if(o.arrows!==false){
+    const ph=o.phase??0,nx=12,ny=clamp(Math.round(12*state.b/state.a),3,14);
+    const cw=W/nx,ch=H/ny,c=Math.cos(ph);
+    for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){
+      const u=(i+.5)/nx,v=(j+.5)/ny;
+      const[ex,ey]=Et(fam,m,n,u,v,state.a,state.b);
+      const inst=(Math.hypot(ex,ey)/D.mx)*Math.abs(c);
+      if(inst<.05)continue;
+      const L=Math.min(cw,ch)*.95*Math.sqrt(inst);  // sqrt = perceptual choice, noted in the notebook
+      const sgn=c>=0?1:-1,ix=ex*sgn,iy=ey*sgn,il=Math.hypot(ix,iy)||1;
+      arrow(ctx,x0+u*W,y0+(1-v)*H,x0+u*W+ix/il*L,y0+(1-v)*H-iy/il*L);}}
+}
+
+/* ================= main cross-section ================= */
+function drawMain(){
+  const {ctx,w,h}=fit($('cvMain'));
+  ctx.fillStyle='#FCFAF4';ctx.fillRect(0,0,w,h);
+  const mL=58,mR=16,mT=30,mB=52,pw=w-mL-mR,ph=h-mT-mB;
+  const s=Math.min(pw/state.a,ph/state.b);
+  const W=state.a*s,H=state.b*s,x0=mL+(pw-W)/2,y1=mT+H;
+  const X=u=>x0+u*W, Y=v=>y1-v*H;
+  frameHatch(ctx,x0,mT,W,H);
+  if(info.inv){
+    ctx.save();ctx.beginPath();ctx.rect(x0,mT,W,H);ctx.clip();
+    ctx.fillStyle='#111A24';ctx.fillRect(x0,mT,W,H);
+    ctx.strokeStyle='rgba(255,120,80,.4)';ctx.lineWidth=1;ctx.beginPath();
+    for(let d=-H;d<W;d+=16){ctx.moveTo(x0+d,mT+H);ctx.lineTo(x0+d+H,mT);}ctx.stroke();ctx.restore();
+    ctx.textAlign='center';ctx.fillStyle='#FFD9A0';
+    ctx.font='600 15px '+MONO;
+    ctx.fillText(`${info.family}${info.m}${info.n} — NOT A VALID MODE`,x0+W/2,mT+H/2-10);
+    ctx.font='12px '+MONO;ctx.fillStyle='rgba(255,217,160,.85)';
+    ctx.fillText('all field components vanish → there is no wave to guide',x0+W/2,mT+H/2+12);
+    ctx.textAlign='left';
+  }else{
+    paint(ctx,x0,mT,W,H,info.family,info.m,info.n,{phase:state.anim?phase:0,
+      iso:state.contours,nodes:state.contours,arrows:state.arrows});
+    if(state.slice&&info.vcut!=null){
+      ctx.save();ctx.setLineDash([7,5]);ctx.strokeStyle='rgba(247,244,236,.9)';ctx.lineWidth=1.2;
+      ctx.beginPath();ctx.moveTo(x0,Y(info.vcut));ctx.lineTo(x0+W,Y(info.vcut));ctx.stroke();
+      ctx.setLineDash([]);ctx.fillStyle='rgba(247,244,236,.9)';ctx.font='10px '+MONO;
+      ctx.fillText('z–x slice',x0+5,Y(info.vcut)-5);ctx.restore();}
+  }
+  // colorbar (data legend, not decoration)
+  if(!info.inv){const bw=130,bh=9,bx=x0+W-bw,by=8;
+    for(let i=0;i<bw;i++){const c=cividis(i/(bw-1));
+      ctx.fillStyle=`rgb(${c[0]|0},${c[1]|0},${c[2]|0})`;ctx.fillRect(bx+i,by,1.5,bh);}
+    ctx.fillStyle='#6E6857';ctx.font='9.5px '+MONO;
+    ctx.fillText('0',bx-8,by+8);ctx.fillText('max |E_t|',bx+bw+4,by+8);}
+  // ticks + dimension lines (engineering-drawing style)
+  ctx.strokeStyle='#25231C';ctx.fillStyle='#25231C';ctx.lineWidth=1;ctx.font='10px '+MONO;
+  const st=niceStep(state.a/6);ctx.textAlign='center';
+  for(let k=0;k<=state.a+1e-9;k+=st){const Xk=X(k/state.a);
+    ctx.beginPath();ctx.moveTo(Xk,y1);ctx.lineTo(Xk,y1+4);ctx.stroke();
+    ctx.fillText(st<1?k.toFixed(1):String(Math.round(k)),Xk,y1+14);}
+  ctx.beginPath();ctx.moveTo(x0,y1+26);ctx.lineTo(x0+W,y1+26);ctx.stroke();
+  for(const sgn of [1,-1]){ctx.beginPath();ctx.moveTo(sgn>0?x0:x0+W,y1+26);
+    ctx.lineTo((sgn>0?x0:x0+W)+6*sgn,y1+22.5);ctx.moveTo(sgn>0?x0:x0+W,y1+26);
+    ctx.lineTo((sgn>0?x0:x0+W)+6*sgn,y1+29.5);ctx.stroke();}
+  ctx.fillText(`a = ${state.a.toFixed(2)} mm`,x0+W/2,y1+40);
+  const st2=niceStep(state.b/4);ctx.textAlign='right';
+  for(let k=0;k<=state.b+1e-9;k+=st2){const Yk=y1-(k/state.b)*H;
+    ctx.beginPath();ctx.moveTo(x0,Yk);ctx.lineTo(x0-4,Yk);ctx.stroke();
+    ctx.fillText(st2<1?k.toFixed(1):String(Math.round(k)),x0-7,Yk+3);}
+  ctx.beginPath();ctx.moveTo(x0-30,mT);ctx.lineTo(x0-30,y1);ctx.stroke();
+  for(const yy of [mT,y1]){ctx.beginPath();ctx.moveTo(x0-30,yy);
+    ctx.lineTo(x0-33.5,yy-6*Math.sign(yy-mT));ctx.moveTo(x0-30,yy);
+    ctx.lineTo(x0-26.5,yy-6*Math.sign(yy-mT));ctx.stroke();}
+  ctx.save();ctx.translate(x0-42,mT+H/2);ctx.rotate(-Math.PI/2);ctx.textAlign='center';
+  ctx.fillText(`b = ${state.b.toFixed(2)} mm`,0,0);ctx.restore();
+  ctx.textAlign='left';
+}
+
+/* ================= side view (z propagation) ================= */
+const sideOff=document.createElement('canvas');
+function drawSide(){
+  const {ctx,w,h}=fit($('cvSide'));
+  ctx.fillStyle='#FCFAF4';ctx.fillRect(0,0,w,h);
+  const mL=46,mR=26,mT=14,mB=28,pw=w-mL-mR,ph=h-mT-mB;
+  if(info.inv){ctx.fillStyle='#6E6857';ctx.font='12px '+MONO;
+    ctx.fillText('— invalid mode: nothing propagates —',mL,mT+ph/2);return;}
+  const Lz=info.prop?clamp(info.lg*1000*2.4,60,420):clamp(info.depth*1000*3.5,25,420);
+  const NU=200,NZ=96,off=makeOff(sideOff,NU,NZ);
+  const octx=off.getContext('2d'),img=octx.createImageData(NU,NZ);
+  let Amx=0;for(let i=1;i<48;i++){const[ex,ey]=Et(info.family,info.m,info.n,i/48,info.vcut,state.a,state.b);
+    Amx=Math.max(Amx,Math.hypot(ex,ey));}
+  for(let j=0;j<NZ;j++){const zm=((j+.5)/NZ)*Lz/1000;               // meters
+    const env=info.prop?1:Math.exp(-info.alpha*zm);                 // e^{-alpha z} below cutoff
+    for(let i=0;i<NU;i++){const u=(i+.5)/NU;
+      const[ex,ey]=Et(info.family,info.m,info.n,u,info.vcut,state.a,state.b);
+      const A=Math.hypot(ex,ey)/Amx;
+      const val=A*env*Math.abs(Math.cos(phase-info.beta*zm));       // |E_t(x,ycut,z,t)|
+      const c=cividis(Math.pow(clamp(val,0,1),.85));const k=4*(j*NU+i);
+      img.data[k]=c[0];img.data[k+1]=c[1];img.data[k+2]=c[2];img.data[k+3]=255;}}
+  octx.putImageData(img,0,0);
+  ctx.imageSmoothingEnabled=true;ctx.drawImage(off,mL,mT,pw,ph);
+  ctx.strokeStyle='#25231C';ctx.lineWidth=1.5;ctx.strokeRect(mL,mT,pw,ph);
+  // z arrow
+  ctx.strokeStyle='#25231C';ctx.beginPath();ctx.moveTo(mL+pw+12,mT+4);ctx.lineTo(mL+pw+12,mT+ph-4);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(mL+pw+12,mT+ph-4);ctx.lineTo(mL+pw+8,mT+ph-11);
+  ctx.moveTo(mL+pw+12,mT+ph-4);ctx.lineTo(mL+pw+16,mT+ph-11);ctx.stroke();
+  ctx.fillStyle='#25231C';ctx.font='11px '+MONO;ctx.fillText('z',mL+pw+9,mT+ph+14);
+  // x ticks
+  const st=niceStep(state.a/5);ctx.textAlign='center';ctx.font='9.5px '+MONO;
+  for(let k=0;k<=state.a+1e-9;k+=st){const Xk=mL+(k/state.a)*pw;
+    ctx.fillText(st<1?k.toFixed(1):String(Math.round(k)),Xk,mT+ph+12);}
+  ctx.fillText('x (mm)',mL+pw/2,mT+ph+24);ctx.textAlign='left';
+  ctx.fillStyle='rgba(250,248,240,.95)';ctx.font='10px '+MONO;
+  ctx.fillText(`slice y = ${(info.vcut*state.b).toFixed(1)} mm · |E_t|`,mL+6,mT+14);
+  if(info.prop&&info.lg*1000<=Lz*.95){                            // lambda_g bracket
+    const Xb=mL+16,Y0=mT,Yg=mT+(info.lg*1000/Lz)*ph;
+    ctx.strokeStyle='#FFC94D';ctx.lineWidth=1.4;ctx.beginPath();
+    ctx.moveTo(Xb,Y0);ctx.lineTo(Xb,Yg);ctx.moveTo(Xb-4,Y0);ctx.lineTo(Xb+4,Y0);
+    ctx.moveTo(Xb-4,Yg);ctx.lineTo(Xb+4,Yg);ctx.stroke();
+    ctx.fillStyle='#FFC94D';ctx.fillText(`λg=${(info.lg*1000).toFixed(1)}mm`,Xb+6,(Y0+Yg)/2+3);}
+  else if(!info.prop){                                            // 1/e depth marker
+    if(info.depth*1000<=Lz){const Yd=mT+(info.depth*1000/Lz)*ph;
+      ctx.save();ctx.setLineDash([5,4]);ctx.strokeStyle='#FFC94D';ctx.lineWidth=1.4;
+      ctx.beginPath();ctx.moveTo(mL,Yd);ctx.lineTo(mL+pw,Yd);ctx.stroke();ctx.restore();
+      ctx.fillStyle='#FFC94D';ctx.fillText(`1/e = ${(info.depth*1000).toFixed(1)} mm`,mL+6,Yd-5);}}
+}
+
+/* ================= fingerprint (longitudinal field) ================= */
+const fpOff=document.createElement('canvas');
+function drawFp(){
+  const {ctx,w,h}=fit($('cvFp'));
+  ctx.fillStyle='#FCFAF4';ctx.fillRect(0,0,w,h);
+  const pad=14,pw=w-2*pad,ph=h-2*pad-8;
+  const s=Math.min(pw/state.a,ph/state.b),W=state.a*s,H=state.b*s,x0=pad+(pw-W)/2,y0=pad+(ph-H)/2;
+  if(info.inv){ctx.fillStyle='#6E6857';ctx.font='12px '+MONO;ctx.textAlign='center';
+    ctx.fillText('no longitudinal field',x0+W/2,y0+H/2);ctx.textAlign='left';return;}
+  const NU=140,NV=clamp(Math.round(NU*state.b/state.a),16,200);
+  const off=makeOff(fpOff,NU,NV),octx=off.getContext('2d'),img=octx.createImageData(NU,NV);
+  for(let j=0;j<NV;j++){const v=1-(j+.5)/NV;
+    for(let i=0;i<NU;i++){const u=(i+.5)/NU;
+      const c=divMap(LongZ(info.family,info.m,info.n,u,v));const k=4*(j*NU+i);
+      img.data[k]=c[0];img.data[k+1]=c[1];img.data[k+2]=c[2];img.data[k+3]=255;}}
+  octx.putImageData(img,0,0);
+  ctx.imageSmoothingEnabled=true;ctx.drawImage(off,x0,y0,W,H);
+  ctx.strokeStyle='rgba(37,35,28,.5)';ctx.lineWidth=1;ctx.setLineDash([4,4]);ctx.beginPath();
+  for(let k=1;k<info.m;k++){const Xk=x0+(k/info.m)*W;ctx.moveTo(Xk,y0);ctx.lineTo(Xk,y0+H);}
+  for(let k=1;k<info.n;k++){const Yk=y0+H-(k/info.n)*H;ctx.moveTo(x0,Yk);ctx.lineTo(x0+W,Yk);}
+  ctx.stroke();ctx.setLineDash([]);
+  ctx.strokeStyle='#25231C';ctx.lineWidth=2;ctx.strokeRect(x0,y0,W,H);
+  ctx.fillStyle='#25231C';ctx.font='600 11px '+MONO;
+  ctx.fillText(info.family==='TE'?'H_z':'E_z',x0+6,y0+15);
+}
+
+/* ================= text builders ================= */
+function bcText(){
+  if(info.inv)return info.reason==='te00'
+    ?'TE00: H_z = H0·cos(0)·cos(0) = const ⇒ ∇tH_z = 0 ⇒ Ex = Ey = 0, and Ez = 0 by definition. Every component vanishes — there is no wave. It cannot quietly become TEM either: a hollow single-conductor guide cannot support TEM (that needs ≥ 2 conductors).'
+    :'TM with m = 0 or n = 0: E_z = E0·sin(mπx/a)·sin(nπy/b) ≡ 0 everywhere, and H_z = 0 by definition ⇒ no field. That is why TM modes must have m ≥ 1 AND n ≥ 1: the two sine factors are what let E_z vanish on all four walls while still living inside.';
+  if(info.family==='TE')
+    return 'BC check (PEC: tangential E = 0)\n• side walls x=0,a:  Ey ∝ sin(mπx/a) → 0 ✓   (Ez = 0 always in TE)\n• top/bottom y=0,b:  Ex ∝ cos(mπx/a)·sin(nπy/b) → 0 ✓';
+  return 'BC check (PEC: tangential E = 0)\n• E_z ∝ sin(mπx/a)·sin(nπy/b) → 0 on ALL four walls ✓ (E_z is tangential to every wall)\n• side walls: Ey ∝ sin(mπx/a) → 0 ✓\n• top/bottom: Ex ∝ sin(nπy/b) → 0 ✓';
+}
+function structText(){
+  if(info.inv)return '';
+  const {family,m,n}=info;
+  if(family==='TE'){
+    if(n===0&&m>0)return `Single polarization: E is purely vertical (±y), Ey ∝ sin(${m}πx/a) — ${m} half-wave lobe${m>1?'s':''} across the width, zero at the side walls (tangential E = 0 ✓), no variation with y.${m>=2?` ${m-1} interior node line${m>2?'s':''} (dashed amber) where the arrows flip sign.`:' No interior node line.'}`;
+    if(m===0&&n>0)return `Single polarization: E is purely horizontal (±x), Ex ∝ sin(${n}πy/b) — ${n} half-wave lobe${n>1?'s':''} across the height, zero at the top/bottom walls where it is tangential ✓.${n>=2?` ${n-1} interior node line${n>2?'s':''} across y.`:''}`;
+    return 'Both components alive: transverse E lines curl around the H_z extrema (swirl). |E| nulls can be lines or isolated points — the dashed amber contours and circles trace them. See the fingerprint panel for the m×n H_z cells.';}
+  const parts=[];if(m>1)parts.push(`${m-1} vertical (x = k·a/${m})`);if(n>1)parts.push(`${n-1} horizontal (y = k·b/${n})`);
+  return `E_z fills an ${m}×${n} grid of half-wave cells and is forced to 0 on all four walls (⇒ m,n ≥ 1). Transverse E ∝ ∇tE_z: arrows look radial, meeting the E_z cells head-on (no swirl). E_z node lines: ${parts.length?parts.join(' · '):'none inside — only the walls.'}`;
+}
+function sideCapText(){
+  if(info.inv)return 'No mode → nothing to show. This emptiness is exactly why invalid (m,n) never occur in a real guide.';
+  if(info.prop)return `Slice at y = ${(info.vcut*state.b).toFixed(1)} mm · the |E_t| pattern travels toward +z with λg = ${(info.lg*1000).toFixed(1)} mm (to scale). Time slowed to 0.7 Hz for visibility — real f₀ = ${state.f0.toFixed(2)} GHz.`;
+  return `Slice at y = ${(info.vcut*state.b).toFixed(1)} mm · EVANESCENT: the pattern flickers in place (no z-phase advance) and decays as e^(−αz); α = ${info.alpha.toFixed(1)} Np/m ≈ ${(info.alpha*8.686/1000).toFixed(2)} dB/mm, 1/e depth = ${(info.depth*1000).toFixed(1)} mm. Nothing propagates.`;
+}
+function fpCapText(){
+  if(info.inv)return 'Invalid mode — no longitudinal field exists.';
+  const mm=v=>v===0?'no variation':`${v} half-wave${v===1?'':'s'}`;
+  return info.family==='TE'
+    ?`H_z fingerprint — ${mm(info.m)} along a, ${mm(info.n)} along b. E_t is strong where H_z is steep, and swirls where H_z peaks.`
+    :`E_z fingerprint — ${info.m}×${info.n} half-wave cells, clamped to zero at every wall (the drumhead analogy). Transverse E radiates from these cells.`;
+}
+function mainAria(){
+  if(info.inv)return `Cross-section: ${info.family}${info.m}${info.n} is not a valid mode; no field exists.`;
+  return `Cross-section heatmap of transverse E-field magnitude with direction arrows for ${info.family}${info.m}${info.n} in a ${state.a} by ${state.b} millimetre guide. Cutoff ${info.fc.toFixed(3)} gigahertz, operating ${state.f0.toFixed(2)} gigahertz, mode ${info.prop?'propagating':'evanescent'}.`;}
+
+/* ================= readouts + chart ================= */
+function fillReadouts(){
+  const el=[['f₀ (operating)',state.f0.toFixed(2)+' GHz'],
+            ['λ₀ = c/f₀',(C0/(state.f0*1e9)*1000).toFixed(2)+' mm']];
+  if(info.inv){el.push(['f_c','— invalid mode'],['status','no field exists']);}
+  else{el.push(['f_c (cutoff)',info.fc.toFixed(3)+' GHz'],['λ_c = c/f_c',(info.lc*1000).toFixed(2)+' mm']);
+    if(info.prop)el.push(['β',info.beta.toFixed(1)+' rad/m'],['λ_g = 2π/β',(info.lg*1000).toFixed(2)+' mm'],
+      [`Z (${info.family})`,info.Z.toFixed(0)+' Ω'],['status',`propagates · f₀ − f_c = ${(state.f0-info.fc).toFixed(2)} GHz`]);
+    else el.push(['α (decay)',info.alpha.toFixed(1)+' Np/m'],['1/e depth',(info.depth*1000).toFixed(2)+' mm'],
+      ['status','EVANESCENT — decays as e^(−αz), carries no power']);}
+  $('roList').innerHTML=el.map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join('');
+}
+function buildChart(){
+  const rows=[];
+  for(let m=0;m<=5;m++)for(let n=0;n<=5;n++)for(const fam of ['TE','TM']){
+    if(fam==='TE'&&m===0&&n===0)continue;
+    if(fam==='TM'&&(m===0||n===0))continue;
+    rows.push({fam,m,n,fc:fcOf(m,n,state.a,state.b)});}
+  rows.sort((p,q)=>p.fc-q.fc||p.fam.localeCompare(q.fam));
+  const max=Math.min(rows.length,15);let html='';
+  for(let k=0;k<max;k++){const r=rows[k];
+    const act=r.fam===state.family&&r.m===state.m&&r.n===state.n;
+    const deg=k>0&&Math.abs(r.fc-rows[k-1].fc)<0.002?' ·deg':'';
+    html+=`<button class="mrow${act?' active':''}" data-go="${r.fam},${r.m},${r.n}">
+      <b>${r.fam}<sub>${r.m}${r.n}</sub></b><span class="fc">fc ${r.fc.toFixed(3)} GHz${deg}</span>
+      ${k===0?'<span class="dom" title="lowest cutoff = dominant mode">★ dominant</span>':'<span></span>'}
+      <span class="chip ${r.fc<state.f0?'ok':'bad'}">${r.fc<state.f0?'prop':'evan'}</span></button>`;}
+  if(rows.length>max)html+=`<p class="cap">+ ${rows.length-max} more modes above…</p>`;
+  $('chart').innerHTML=html;
+}
+
+/* ================= sound (WebAudio, gesture-safe) ================= */
+let AC=null;
+function tone(){
+  if(!state.sound)return;
+  try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();}catch(e){return;}
+  if(AC.state==='suspended')AC.resume();
+  const t=AC.currentTime,pent=[0,3,5,7,10];
+  const note=i=>165*Math.pow(2,(pent[i%5]+12*Math.floor(i/5))/12);   // pitch tied to m and n
+  const f1=note(info.inv?0:info.m), f2=note(info.inv?0:info.n)*(info.family==='TM'?1.5:1);
+  const dur=info.inv?0.4:(info.prop?0.9:clamp(0.5/(1+info.alpha/150),0.12,0.5)); // evanescent tones literally die away
+  const g=AC.createGain();g.gain.setValueAtTime(0.0001,t);
+  g.gain.exponentialRampToValueAtTime(0.16,t+0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  const flt=AC.createBiquadFilter();flt.type='lowpass';
+  flt.frequency.value=info.inv?250:(info.prop?600+3200*clamp(1-info.fc/state.f0,0,1):320);
+  const o1=AC.createOscillator();o1.type=info.family==='TE'?'triangle':'sawtooth';o1.frequency.value=f1;
+  const o2=AC.createOscillator();o2.type='sine';o2.frequency.value=f2;
+  o1.connect(flt);o2.connect(flt);flt.connect(g);g.connect(AC.destination);
+  o1.start(t);o2.start(t);o1.stop(t+dur+.05);o2.stop(t+dur+.05);
+}
+
+/* ================= update + loop ================= */
+function syncInputs(){
+  $('mR').value=state.m;$('nR').value=state.n;$('aR').value=state.a;$('bR').value=state.b;$('fR').value=state.f0;
+  $('mO').textContent=state.m;$('nO').textContent=state.n;
+  $('aO').textContent=state.a.toFixed(1);$('bO').textContent=state.b.toFixed(1);$('fO').textContent=state.f0.toFixed(2);
+  $('famTE').setAttribute('aria-pressed',String(state.family==='TE'));
+  $('famTM').setAttribute('aria-pressed',String(state.family==='TM'));
+  $('validNote').textContent=state.family==='TE'
+    ?'valid TE: m, n ≥ 0, but not both 0':'valid TM: m ≥ 1 AND n ≥ 1 (smaller values are shown as invalid on purpose)';
+  for(const [id,v] of [['arrowsB',state.arrows],['contoursB',state.contours],
+                       ['sliceB',state.slice],['motionB',state.anim],['soundB',state.sound]])
+    $(id).setAttribute('aria-pressed',String(v));
+}
+function update(){
+  info=computeInfo();
+  $('modeChip').innerHTML=`${state.family}<sub>${state.m}${state.n}</sub>`;
+  const sc=$('statusChip');
+  if(info.inv){sc.textContent='invalid mode';sc.className='chip bad';}
+  else if(info.prop){sc.textContent='propagating';sc.className='chip ok';}
+  else{sc.textContent='evanescent';sc.className='chip bad';}
+  fillReadouts();$('bcBox').textContent=bcText();$('structBox').textContent=structText();
+  buildChart();$('sideCap').textContent=sideCapText();$('fpCap').textContent=fpCapText();
+  $('cvMain').setAttribute('aria-label',mainAria());
+  drawFp();
+  dirty=true;if(!state.anim){drawMain();drawSide();dirty=false;}
+}
+function loop(t){
+  if(!lastT)lastT=t;
+  const dt=Math.min(.05,(t-lastT)/1000);lastT=t;
+  if(state.anim){phase+=dt*2*Math.PI*0.7;drawMain();drawSide();}
+  else if(dirty){drawMain();drawSide();dirty=false;}
+  requestAnimationFrame(loop);
+}
+
+/* ================= game: name that mode ================= */
+const game={round:null,score:0,tries:0,streak:0};
+const lbl=r=>`${r.fam}${r.m}${r.n}`;
+function newRound(){
+  const fam=Math.random()<.5?'TE':'TM';let m,n;
+  if(fam==='TE'){do{m=ri(0,3);n=ri(0,3);}while(m===0&&n===0);}else{m=ri(1,3);n=ri(1,3);}
+  game.round={fam,m,n};
+  const cv=$('cvGame'),{ctx,w,h}=fit(cv);ctx.clearRect(0,0,w,h);
+  const pad=10,s=Math.min((w-2*pad)/state.a,(h-2*pad)/state.b);
+  const W=state.a*s,H=state.b*s;
+  paint(ctx,pad+(w-2*pad-W)/2,pad+(h-2*pad-H)/2,W,H,fam,m,n,{phase:0});
+  $('gameMsg').textContent='Pattern loaded — count the half-waves along a and b!';
+}
+function checkGuess(){
+  const r=game.round;if(!r)return;game.tries++;
+  const ok=$('gFam').value===r.fam&&+$('gM').value===r.m&&+$('gN').value===r.n;
+  if(ok){game.score++;game.streak++;}else game.streak=0;
+  $('gameMsg').innerHTML=ok?'<b style="color:var(--ok)">Correct!</b> It is '+lbl(r)+'.'
+    :`Not quite — it was <b>${lbl(r)}</b>. `+(r.fam==='TE'
+      ?'TE arrows curl around the H_z cells, and TE may have one zero index.'
+      :'TM arrows radiate from the E_z cells, and TM needs m ≥ 1 AND n ≥ 1.');
+  $('scoreO').textContent=`${game.score}/${game.tries} · streak ${game.streak}`;
+}
+
+/* ================= reflections (localStorage) ================= */
+const RKEY='wgbench.v1.refl';
+function loadRefl(){try{const d=JSON.parse(localStorage.getItem(RKEY)||'{}');
+  for(let i=1;i<=7;i++){const t=$('r'+i);if(d['r'+i])t.value=d['r'+i];}}catch(e){}}
+function saveRefl(){try{const d={};for(let i=1;i<=7;i++)d['r'+i]=$('r'+i).value;
+  localStorage.setItem(RKEY,JSON.stringify(d));}catch(e){}}
+const STEP_TITLES=['Baseline TE10','m→2 (TE20)','n→1 (TE21)','TE00 invalid','TM allowed set','TE11 vs TM11','Dominant mode'];
+
+/* ================= wiring ================= */
+ $('mR').addEventListener('input',e=>{state.m=+e.target.value;$('mO').textContent=state.m;update();});
+ $('nR').addEventListener('input',e=>{state.n=+e.target.value;$('nO').textContent=state.n;update();});
+ $('aR').addEventListener('input',e=>{state.a=+e.target.value;$('aO').textContent=state.a.toFixed(1);
+  $('dimP').value='custom';update();});
+ $('bR').addEventListener('input',e=>{state.b=+e.target.value;$('bO').textContent=state.b.toFixed(1);
+  $('dimP').value='custom';update();});
+ $('fR').addEventListener('input',e=>{state.f0=+e.target.value;$('fO').textContent=state.f0.toFixed(2);update();});
+for(const id of ['mR','nR','aR','bR','fR'])$(id).addEventListener('change',tone);
+ $('famTE').onclick=()=>{if(state.family!=='TE'){state.family='TE';syncInputs();update();tone();}};
+ $('famTM').onclick=()=>{if(state.family!=='TM'){state.family='TM';syncInputs();update();tone();}};
+document.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>{
+  const [f,m,n]=b.dataset.preset.split(',');state.family=f;state.m=+m;state.n=+n;
+  syncInputs();update();tone();});
+const DIMS={wr90:[22.86,10.16],wr62:[15.80,7.90],wr430:[109.22,54.61],sq:[25,25]};
+ $('dimP').onchange=e=>{const v=e.target.value;if(v==='custom')return;
+  [state.a,state.b]=DIMS[v];syncInputs();update();};
+ $('resetB').onclick=()=>{Object.assign(state,{family:'TE',m:1,n:0,a:22.86,b:10.16,f0:10});
+  $('dimP').value='wr90';syncInputs();update();};
+ $('arrowsB').onclick  =()=>{state.arrows=!state.arrows;syncInputs();update();};
+ $('contoursB').onclick=()=>{state.contours=!state.contours;syncInputs();update();};
+ $('sliceB').onclick   =()=>{state.slice=!state.slice;syncInputs();update();};
+ $('motionB').onclick  =()=>{state.anim=!state.anim;syncInputs();
+  if(!state.anim){drawMain();drawSide();dirty=false;}};
+ $('soundB').onclick   =()=>{state.sound=!state.sound;syncInputs();if(state.sound)tone();};
+ $('pngB').onclick=()=>{const a=document.createElement('a');
+  a.download=`waveguide-${state.family}${state.m}${state.n}.png`;
+  a.href=$('cvMain').toDataURL('image/png');a.click();};
+ $('chart').addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(!b)return;
+  const [f,m,n]=b.dataset.go.split(',');state.family=f;state.m=+m;state.n=+n;
+  syncInputs();update();tone();});
+ $('newB').onclick=newRound;$('checkB').onclick=checkGuess;
+ $('revealB').onclick=()=>{if(game.round)$('gameMsg').innerHTML='It was <b>'+lbl(game.round)+'</b>. Press “New pattern”.';
+  game.streak=0;};
+ $('copyR').onclick=async()=>{let s='Waveguide lab — my reflections\n';
+  for(let i=1;i<=7;i++)s+=`\nStep ${i} — ${STEP_TITLES[i-1]}\n${$('r'+i).value||'(blank)'}\n`;
+  try{await navigator.clipboard.writeText(s);$('copyR').textContent='Copied ✓';
+    setTimeout(()=>$('copyR').textContent='Copy reflections',1400);}catch(e){alert('Copy failed — select the text manually.');}};
+document.addEventListener('input',e=>{if(/^r[1-7]$/.test(e.target.id||''))saveRefl();});
+new ResizeObserver(()=>{if(!state.anim){drawMain();drawSide();drawFp();}}).observe(document.body);
+
+/* ================= init ================= */
+loadRefl();syncInputs();update();newRound();requestAnimationFrame(loop);
+</script>
+</body>
+</html>
