@@ -4,7 +4,7 @@ An interactive, single-file web app for exploring **TE and TM modes in rectangul
 
 Open it in a browser and play with `m`, `n`, guide dimensions, and operating frequency. See the field patterns, cutoff behaviour, and propagation in real time — no install, no build step, no dependencies.
 
-**Live demo:** `OpticWGSIM.pages.dev`*
+**Live demo:** `https://opticwgsim.pages.dev/`
 
 ---
 
